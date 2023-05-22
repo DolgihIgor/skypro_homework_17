@@ -74,10 +74,10 @@ director_ns = api.namespace('directors')
 genre_ns = api.namespace('genres')
 
 
-# ---------------------------------- Movies ---------------------------------------
+# ---------------------------------- Movies --------------------------------------- #
 
 @movie_ns.route("/")
-class MovieView(Resource):
+class MoviesView(Resource):
     def get(self):
         # Получаем director_id или genre_id из запроса вида /movies/?director_id=1
         director_id = request.args.get("director_id")
@@ -154,10 +154,52 @@ class MovieView(Resource):
         db.session.delete(movie)
         db.session.commit()
 
+# ---------------------------------------- Directors -------------------------------------#
+
+@director_ns.route("/")
+class DirectorsView(Resource):
+    def get(self):
+        directors = Director.query.all()
+        return directors_schema.dump(directors), 200
+    def post(self):
+        req_json = request.json
+        new_director = Director(**req_json)
+        with db.session.begin():
+            db.session.add(new_director)
+        return "", 201, {"Location": f"/directors/{new_director.id}"}
 
 
+@director_ns.route("/<int:uid>")
+class DirectorView(Resource):
+    def get(self, uid: int):
+        director = Director.query.get(uid)
+        if not director:
+            return "", 404
+        return director_schema.dump(director), 200
 
+    def put(self, uid: int):
+        director = Director.query.get(uid)
+        req_json = request.json
+        director.name = req_json.get("name")
+        db.session.add(director)
+        db.session.commit()
+        return "", 204
 
+    def patch(self, uid: int):
+        director = Director.query.get(uid)
+        req_json = request.json
+        if "name" in req_json:
+            director.name = req_json.get("name")
+        db.session.add(director)
+        db.session.commit()
+        return "", 204
+
+    def delete(self, uid: int):
+        director = Director.query.get(uid)
+        if not director:
+            return "", 204
+        db.session.delete(director)
+        db.session.commit()
 
 
 
